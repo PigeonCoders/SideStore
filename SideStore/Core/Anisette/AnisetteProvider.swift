@@ -11,6 +11,8 @@ import SideSign
 
 enum AnisetteProvider {
     static func fetch(handler: AnisetteServerHandler? = nil) async throws -> ALTAnisetteData {
+        await AnisetteConfigManager.shared.migrateAnisetteStateIfNeeded()
+
         if UserDefaults.standard.useOnDeviceAnisette {
             debugLog("[AnisetteProvider] Attempting anisette via On-Device Anisette (ODA)...")
             do {

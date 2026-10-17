@@ -128,8 +128,26 @@ public enum AppConstants {
 
         public enum Servers {
             public static let defaultSource        = "https://servers.sidestore.io/servers.json"
-            public static let defaultServerURL     = "https://ani.sidestore.io"
+            // GSA now expects the Windows/iTunes identity; use a Windows ADI server so the
+            // provisioned anisette data matches the client info we send.
+            public static let defaultServerURL     = "https://win.ani.sidestore.io"
+            public static let fallbackServerURL    = "https://ani.jkcoxson.com"
+            public static let legacyMacServerURLs: Set<String> = [
+                "https://ani.sidestore.io",
+                "https://ani.sidestore.app",
+                "https://ani.sidestore.zip",
+                "https://ani.846969.xyz",
+                "https://new.ani.sidestore.io",
+            ]
             public static let connectivityCheckURL = URL(string: "https://www.apple.com/library/test/success.html")!
+
+            public static func isLegacyMacServer(_ value: String) -> Bool {
+                value.isEmpty || legacyMacServerURLs.contains(value)
+            }
+
+            public static func isPreferredWindowsServer(_ value: String) -> Bool {
+                value == defaultServerURL || value == fallbackServerURL
+            }
         }
 
         public static let remoteCacheDuration     = Constants.Anisette.remoteCacheDuration

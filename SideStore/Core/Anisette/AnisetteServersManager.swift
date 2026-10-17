@@ -56,6 +56,13 @@ public actor AnisetteServersManager {
     // MARK: - Local Persistence & In-Memory Caching
 
     public func loadLocalServers() -> [AnisetteServerItem] {
+        // Old nightly builds defaulted to a macOS anisette server, which no longer matches
+        // the Windows/iTunes client info used for GSA. Move that default once, but keep a
+        // deliberately chosen custom server.
+        if AppConstants.Anisette.Servers.isLegacyMacServer(UserDefaults.standard.menuAnisetteURL) {
+            UserDefaults.standard.menuAnisetteURL = AppConstants.Anisette.Servers.defaultServerURL
+        }
+
         if let cached = inMemoryServersCache {
             return cached
         }
@@ -107,14 +114,29 @@ public actor AnisetteServersManager {
 
         let active = items.filter { !$0.isHidden }.map(\.address)
         let currentURL = UserDefaults.standard.menuAnisetteURL
-        if !active.contains(currentURL), let first = active.first {
-            UserDefaults.standard.menuAnisetteURL = first
+        if !active.contains(currentURL) && !AppConstants.Anisette.Servers.isPreferredWindowsServer(currentURL) {
+            let preferredURL = active.contains(AppConstants.Anisette.Servers.defaultServerURL)
+                ? AppConstants.Anisette.Servers.defaultServerURL
+                : active.first
+            if let preferredURL {
+                UserDefaults.standard.menuAnisetteURL = preferredURL
+            }
         }
     }
 
     public func getActiveServerURLs() -> [String] {
-        let servers = loadLocalServers()
-        return servers.filter { !$0.isHidden }.map(\.address)
+        var servers = loadLocalServers().filter { !$0.isHidden }.map(\.address)
+        let preferred = [
+            AppConstants.Anisette.Servers.defaultServerURL,
+            AppConstants.Anisette.Servers.fallbackServerURL
+        ]
+        // Older cached lists may not include the Windows ADI servers yet.
+        for url in preferred.reversed() where !servers.contains(url) {
+            servers.insert(url, at: 0)
+        }
+        let preferredActive = preferred.filter { servers.contains($0) }
+        let others = servers.filter { !preferred.contains($0) }
+        return preferredActive + others
     }
 
     // MARK: - Offline File Mode State Keys

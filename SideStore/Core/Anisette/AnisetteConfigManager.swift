@@ -165,6 +165,31 @@ public actor AnisetteConfigManager {
         return AppConstants.Anisette.isLegacyUserAgent(trimmed) ? AppConstants.Anisette.defaultUserAgent : trimmed
     }
 
+    /// One-time migration for the Windows/iTunes identity. The old macOS server's adi.pb and
+    /// persisted header overrides are incompatible with the new client info and cause GSA 503s.
+    public func migrateAnisetteStateIfNeeded() {
+        let key = "AnisetteConfigManager.didMigrateToWindowsADIV1"
+        let ud = UserDefaults.standard
+        guard !ud.bool(forKey: key) else { return }
+
+        ud.useOnDeviceAnisette      = false
+        ud.menuAnisetteURL          = AppConstants.Anisette.Servers.defaultServerURL
+        ud.customAnisetteClientInfo = nil
+        ud.customAnisetteUserAgent  = nil
+        ud.customAnisetteDeviceID   = nil
+        ud.customAnisetteLocalUserID = nil
+        ud.customAnisetteLocale     = nil
+        ud.customAnisetteTimeZone   = nil
+        ud.customAnisetteXcodeVersion = nil
+        ud.customAnisetteSerialNumber = nil
+        ud.customAnisetteRoutingInfo = nil
+        anisetteAdiBlob = nil
+        deleteConfigFile()
+        ud.set(true, forKey: key)
+
+        debugLog("[AnisetteConfigManager] Migrated to Windows ADI anisette server and cleared stale adi.pb")
+    }
+
     public func makeRequestHeaders() -> AnisetteRequestHeaders {
         let config = loadConfig()
         return AnisetteRequestHeaders().with {

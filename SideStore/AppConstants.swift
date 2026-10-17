@@ -68,9 +68,41 @@ public enum AppConstants {
         public static let defaultODAMetadataURL       = URL(string: "https://zzz.haus/oda.json")!
         public static var defaultODAMetadataURLString: String { defaultODAMetadataURL.absoluteString }
 
-        // Proxied from upstream SideSign
-        public static let defaultClientInfo           = Constants.Anisette.defaultClientInfo
-        public static let defaultUserAgent            = Constants.Anisette.defaultUserAgent
+        // GSA rejects the old macOS client info with -80045 (and the Android workaround with 503).
+        // Use the Windows iTunes identity, which current anisette servers and GSA accept.
+        public static let defaultClientInfo           = "<PC> <Windows;6.2(0,0);9200> <com.apple.AuthKit/1 (com.apple.iTunes/12.12.4.1)>"
+        public static let defaultUserAgent            = "akd/1.0 CFNetwork/808.1.4"
+
+        // Values persisted by older builds. They are migrated to the defaults above on load because GSA blocks them.
+        public static let legacyClientInfos: Set<String> = [
+            "<MacBookPro18,3> <macOS;26.6;25F84> <com.apple.AuthKit/1 (com.apple.akd/1.0)>",
+            "<MacBookPro13,2> <macOS;13.1;22C65> <com.apple.AuthKit/1 (com.apple.akd/1.0)>",
+            "<MacBookPro18,3> <macOS;26.6;25F84> <com.apple.AuthKit/1 (com.apple.dt.Xcode/26.0)>",
+            "<MacBookPro18,3> <macOS;26.6;25F84> <com.apple.AuthKit/1 (com.apple.dt.Xcode/3594.4.19)>",
+            "<MacBookPro13,2> <macOS;13.1;22C65> <com.apple.AuthKit/1 (com.apple.dt.Xcode/3594.4.19)>",
+            "<Pixel 7> <Android;14;UQ1A.240205.002> <com.apple.AuthKit/1 (com.apple.akd/1.0)>",
+            "<Pixel 8><Android; 14; UQ1A.240205.004><com.apple.AuthKit/1 (com.apple.android.music/4.9.6)>",
+        ]
+
+        public static let legacyUserAgents: Set<String> = [
+            "AuthKit/1 (Macintosh; OS X 26.6) (com.apple.akd/1.0)",
+        ]
+
+        public static func isLegacyClientInfo(_ value: String) -> Bool {
+            value.isEmpty ||
+            legacyClientInfos.contains(value) ||
+            value.contains("macOS;") ||
+            value.contains("com.apple.dt.Xcode") ||
+            value.contains("<Pixel") ||
+            value.contains("Android;")
+        }
+
+        public static func isLegacyUserAgent(_ value: String) -> Bool {
+            value.isEmpty ||
+            legacyUserAgents.contains(value) ||
+            value.contains("dt.Xcode") ||
+            value.contains("Macintosh; OS X 26.6")
+        }
 
         public enum URLs {
             public static let grandSlamLookup = Constants.Anisette.URLs.grandSlamLookup

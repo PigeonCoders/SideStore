@@ -130,8 +130,8 @@ public actor AnisetteConfigManager {
             return config
         }()
 
-        let resolvedClientInfo   = (udClientInfo?.isEmpty == false ? udClientInfo : fileConfig?.clientInfo) ?? AppConstants.Anisette.defaultClientInfo
-        let resolvedUserAgent    = (udUserAgent?.isEmpty == false ? udUserAgent : fileConfig?.userAgent) ?? AppConstants.Anisette.defaultUserAgent
+        let resolvedClientInfo   = Self.normalizedClientInfo(udClientInfo?.isEmpty == false ? udClientInfo : fileConfig?.clientInfo)
+        let resolvedUserAgent    = Self.normalizedUserAgent(udUserAgent?.isEmpty == false ? udUserAgent : fileConfig?.userAgent)
         let resolvedDeviceID     = (udDeviceID?.isEmpty == false ? udDeviceID : fileConfig?.customDeviceID)
         let resolvedLocalUserID  = (udLocalUserID?.isEmpty == false ? udLocalUserID : fileConfig?.customLocalUserID)
         let resolvedLocale       = (udLocale?.isEmpty == false ? udLocale : fileConfig?.customLocale)
@@ -153,6 +153,18 @@ public actor AnisetteConfigManager {
         )
     }
 
+    /// Old macOS defaults are now rejected by GSA (-80045), and a trailing newline
+    /// from pasting a client info makes the auth endpoint return an empty body.
+    private static func normalizedClientInfo(_ clientInfo: String?) -> String {
+        let trimmed = clientInfo?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return AppConstants.Anisette.isLegacyClientInfo(trimmed) ? AppConstants.Anisette.defaultClientInfo : trimmed
+    }
+
+    private static func normalizedUserAgent(_ userAgent: String?) -> String {
+        let trimmed = userAgent?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return AppConstants.Anisette.isLegacyUserAgent(trimmed) ? AppConstants.Anisette.defaultUserAgent : trimmed
+    }
+
     public func makeRequestHeaders() -> AnisetteRequestHeaders {
         let config = loadConfig()
         return AnisetteRequestHeaders().with {
@@ -172,21 +184,25 @@ public actor AnisetteConfigManager {
     }
     
     public func saveConfig(_ config: AnisetteConfig) {
+        var normalized = config
+        normalized.clientInfo = Self.normalizedClientInfo(config.clientInfo)
+        normalized.userAgent = Self.normalizedUserAgent(config.userAgent)
+
         let encoder = Foundation.JSONEncoder()
         encoder.outputFormatting = .prettyPrinted
-        if let data = try? encoder.encode(config) {
+        if let data = try? encoder.encode(normalized) {
             try? data.write(to: configFileURL, options: .atomic)
         }
         let ud = UserDefaults.standard
-        ud.customAnisetteClientInfo   = config.clientInfo
-        ud.customAnisetteUserAgent    = config.userAgent
-        ud.customAnisetteDeviceID     = config.customDeviceID
-        ud.customAnisetteLocalUserID  = config.customLocalUserID
-        ud.customAnisetteLocale       = config.customLocale
-        ud.customAnisetteTimeZone     = config.customTimeZone
-        ud.customAnisetteXcodeVersion = config.customXcodeVersion
-        ud.customAnisetteSerialNumber = config.customSerialNumber
-        ud.customAnisetteRoutingInfo  = config.customRoutingInfo
+        ud.customAnisetteClientInfo   = normalized.clientInfo
+        ud.customAnisetteUserAgent    = normalized.userAgent
+        ud.customAnisetteDeviceID     = normalized.customDeviceID
+        ud.customAnisetteLocalUserID  = normalized.customLocalUserID
+        ud.customAnisetteLocale       = normalized.customLocale
+        ud.customAnisetteTimeZone     = normalized.customTimeZone
+        ud.customAnisetteXcodeVersion = normalized.customXcodeVersion
+        ud.customAnisetteSerialNumber = normalized.customSerialNumber
+        ud.customAnisetteRoutingInfo  = normalized.customRoutingInfo
     }
     
     public func importFromFile(url: URL) throws -> AnisetteConfig {

@@ -12,8 +12,15 @@ import SideSign
 enum AnisetteProvider {
     static func fetch(handler: AnisetteServerHandler? = nil) async throws -> ALTAnisetteData {
         if UserDefaults.standard.useOnDeviceAnisette {
-            debugLog("[AnisetteProvider] Fetching anisette via On-Device Anisette (ODA)...")
-            return try await OnDeviceAnisetteManager.shared.fetchAnisetteData()
+            debugLog("[AnisetteProvider] Attempting anisette via On-Device Anisette (ODA)...")
+            do {
+                let data = try await OnDeviceAnisetteManager.shared.fetchAnisetteData()
+                debugLog("[AnisetteProvider] On-Device Anisette succeeded.")
+                return data
+            } catch {
+                debugLog("[AnisetteProvider] On-Device Anisette failed (\(error.localizedDescription)). Falling back to remote anisette servers...")
+                return try await fetchRemote(handler: handler)
+            }
         } else {
             debugLog("[AnisetteProvider] Fetching anisette via remote server...")
             return try await fetchRemote(handler: handler)
@@ -21,7 +28,13 @@ enum AnisetteProvider {
     }
 
     private static func fetchRemote(handler: AnisetteServerHandler? = nil) async throws -> ALTAnisetteData {
-        let serverUrlStrings = await AnisetteServersManager.shared.getActiveServerURLs()
+        var serverUrlStrings = await AnisetteServersManager.shared.getActiveServerURLs()
+        if serverUrlStrings.isEmpty {
+            debugLog("[AnisetteProvider] No cached anisette servers; syncing the server list...")
+            _ = try? await AnisetteServersManager.shared.syncWithRemote(forceRemote: true)
+            serverUrlStrings = await AnisetteServersManager.shared.getActiveServerURLs()
+        }
+
         let servers = serverUrlStrings.compactMap { URL(string: $0) }
         guard !servers.isEmpty else {
             throw AnisetteError.noServersConfigured

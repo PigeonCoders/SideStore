@@ -151,8 +151,10 @@ final class SignInOperation: BaseStandaloneOperation<StandaloneOperationContext,
         let xcodeVersion = await AnisetteConfigManager.shared.resolvedXcodeVersion()
 
         // GSA matches the user agent against the anisette identity. Respect an explicit
-        // sidesign-config.json override; otherwise keep the two in sync.
-        if !SideSignConfigManager.shared.hasConfigFile() && !anisetteData.userAgent.isEmpty {
+        // sidesign-config.json override unless it still carries the rejected Xcode UA.
+        let grandSlamUA = DeveloperPortal.shared.customHeaders.grandSlam.userAgent
+        if !anisetteData.userAgent.isEmpty &&
+            (!SideSignConfigManager.shared.hasConfigFile() || grandSlamUA.contains("com.apple.dt.Xcode")) {
             DeveloperPortal.shared.customHeaders.grandSlam.userAgent = anisetteData.userAgent
         }
 

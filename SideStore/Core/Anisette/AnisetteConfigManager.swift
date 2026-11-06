@@ -165,10 +165,12 @@ public actor AnisetteConfigManager {
         return AppConstants.Anisette.isLegacyUserAgent(trimmed) ? AppConstants.Anisette.defaultUserAgent : trimmed
     }
 
-    /// One-time migration for the Windows/iTunes identity. The old macOS server's adi.pb and
-    /// persisted header overrides are incompatible with the new client info and cause GSA 503s.
+    /// One-time migration for the current (November 2026) anisette profile. Apple now
+    /// rejects the old macOS 26.6/13.1 and Windows/iTunes identities with -80045/-22421.
+    /// Clear stale overrides and the provisioned adi.pb, then use the "SideStore (New)"
+    /// server profile that GSA accepts.
     public func migrateAnisetteStateIfNeeded() {
-        let key = "AnisetteConfigManager.didMigrateToWindowsADIV1"
+        let key = "AnisetteConfigManager.didMigrateToWorkingAnisetteV2"
         let ud = UserDefaults.standard
         guard !ud.bool(forKey: key) else { return }
 
@@ -187,7 +189,7 @@ public actor AnisetteConfigManager {
         deleteConfigFile()
         ud.set(true, forKey: key)
 
-        debugLog("[AnisetteConfigManager] Migrated to Windows ADI anisette server and cleared stale adi.pb")
+        debugLog("[AnisetteConfigManager] Migrated to SideStore (New) Mac OS X profile and cleared stale adi.pb")
     }
 
     public func makeRequestHeaders() -> AnisetteRequestHeaders {

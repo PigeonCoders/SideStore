@@ -56,10 +56,9 @@ public actor AnisetteServersManager {
     // MARK: - Local Persistence & In-Memory Caching
 
     public func loadLocalServers() -> [AnisetteServerItem] {
-        // Old nightly builds defaulted to a macOS anisette server, which no longer matches
-        // the Windows/iTunes client info used for GSA. Move that default once, but keep a
-        // deliberately chosen custom server.
-        if AppConstants.Anisette.Servers.isLegacyMacServer(UserDefaults.standard.menuAnisetteURL) {
+        // Older builds saved the now-rejected Windows ADI / legacy macOS servers. Move
+        // those to the working "SideStore (New)" server, but keep a custom server.
+        if AppConstants.Anisette.Servers.isLegacyServer(UserDefaults.standard.menuAnisetteURL) {
             UserDefaults.standard.menuAnisetteURL = AppConstants.Anisette.Servers.defaultServerURL
         }
 
@@ -114,7 +113,7 @@ public actor AnisetteServersManager {
 
         let active = items.filter { !$0.isHidden }.map(\.address)
         let currentURL = UserDefaults.standard.menuAnisetteURL
-        if !active.contains(currentURL) && !AppConstants.Anisette.Servers.isPreferredWindowsServer(currentURL) {
+        if !active.contains(currentURL) && !AppConstants.Anisette.Servers.isPreferredServer(currentURL) {
             let preferredURL = active.contains(AppConstants.Anisette.Servers.defaultServerURL)
                 ? AppConstants.Anisette.Servers.defaultServerURL
                 : active.first
@@ -130,7 +129,7 @@ public actor AnisetteServersManager {
             AppConstants.Anisette.Servers.defaultServerURL,
             AppConstants.Anisette.Servers.fallbackServerURL
         ]
-        // Older cached lists may not include the Windows ADI servers yet.
+        // Older cached lists may not include the current preferred servers yet.
         for url in preferred.reversed() where !servers.contains(url) {
             servers.insert(url, at: 0)
         }

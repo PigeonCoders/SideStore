@@ -165,12 +165,12 @@ public actor AnisetteConfigManager {
         return AppConstants.Anisette.isLegacyUserAgent(trimmed) ? AppConstants.Anisette.defaultUserAgent : trimmed
     }
 
-    /// One-time migration for the current (November 2026) anisette profile. Apple now
-    /// rejects the old macOS 26.6/13.1 and Windows/iTunes identities with -80045/-22421.
-    /// Clear stale overrides and the provisioned adi.pb, then use the "SideStore (New)"
-    /// server profile that GSA accepts.
+    /// One-time migration for the current (November 2026) anisette profile. Apple
+    /// rejects the Sierra Mac on macOS-ADI servers with -23782, and the Windows
+    /// identity with -22421. Clear stale overrides and the provisioned adi.pb,
+    /// then report AnisetteKit's current Mac through a macOS-ADI server.
     public func migrateAnisetteStateIfNeeded() {
-        let key = "AnisetteConfigManager.didMigrateToWorkingAnisetteV2"
+        let key = "AnisetteConfigManager.didMigrateToCurrentMacAnisetteV3"
         let ud = UserDefaults.standard
         guard !ud.bool(forKey: key) else { return }
 
@@ -189,7 +189,7 @@ public actor AnisetteConfigManager {
         deleteConfigFile()
         ud.set(true, forKey: key)
 
-        debugLog("[AnisetteConfigManager] Migrated to SideStore (New) Mac OS X profile and cleared stale adi.pb")
+        debugLog("[AnisetteConfigManager] Migrated to current Mac profile and cleared stale adi.pb")
     }
 
     public func makeRequestHeaders() -> AnisetteRequestHeaders {

@@ -68,15 +68,16 @@ public enum AppConstants {
         public static let defaultODAMetadataURL       = URL(string: "https://zzz.haus/oda.json")!
         public static var defaultODAMetadataURLString: String { defaultODAMetadataURL.absoluteString }
 
-        // Current (November 2026) profile returned by the working "SideStore (New)"
-        // anisette server. GSA rejects the older macOS 26.6/13.1 profiles and the
-        // Windows/iTunes profile with -80045 / -22421.
-        public static let defaultClientInfo           = "<MacBookPro13,3> <Mac OS X;10.12.6;16G29> <com.apple.AuthKit/1 (com.apple.akd/1.0)>"
-        public static let defaultUserAgent            = "akd/1.0 CFNetwork/811.5.4 Darwin/16.7.0"
+        // The macOS-ADI servers (SideStore (New), jkcoxson) name a Sierra Mac,
+        // which Apple now rejects with -23782. Report a current Mac instead;
+        // these are AnisetteKit's own defaults and the combination SideInstaller
+        // 1.6.1 verified on 2026-11-06.
+        public static let defaultClientInfo           = "<MacBookPro18,3> <macOS;26.6;25F84> <com.apple.AuthKit/1 (com.apple.akd/1.0)>"
+        public static let defaultUserAgent            = "AuthKit/1 (Macintosh; OS X 26.6) (com.apple.akd/1.0)"
 
         // Values persisted by older builds. They are migrated to the defaults above on load because GSA blocks them.
         public static let legacyClientInfos: Set<String> = [
-            "<MacBookPro18,3> <macOS;26.6;25F84> <com.apple.AuthKit/1 (com.apple.akd/1.0)>",
+            "<MacBookPro13,3> <Mac OS X;10.12.6;16G29> <com.apple.AuthKit/1 (com.apple.akd/1.0)>",
             "<MacBookPro13,2> <macOS;13.1;22C65> <com.apple.AuthKit/1 (com.apple.akd/1.0)>",
             "<MacBookPro18,3> <macOS;26.6;25F84> <com.apple.AuthKit/1 (com.apple.dt.Xcode/26.0)>",
             "<MacBookPro18,3> <macOS;26.6;25F84> <com.apple.AuthKit/1 (com.apple.dt.Xcode/3594.4.19)>",
@@ -87,15 +88,16 @@ public enum AppConstants {
         ]
 
         public static let legacyUserAgents: Set<String> = [
-            "AuthKit/1 (Macintosh; OS X 26.6) (com.apple.akd/1.0)",
             "AuthKit/1 (Macintosh; OS X 26.6) (com.apple.dt.Xcode/26.0)",
             "akd/1.0 CFNetwork/808.1.4",
+            "akd/1.0 CFNetwork/811.5.4 Darwin/16.7.0",
         ]
 
         public static func isLegacyClientInfo(_ value: String) -> Bool {
             value.isEmpty ||
             legacyClientInfos.contains(value) ||
-            value.contains("macOS;") ||
+            value.contains("Mac OS X;10.12") ||
+            value.contains("macOS;13.1") ||
             value.contains("Windows;") ||
             value.contains("com.apple.iTunes") ||
             value.contains("com.apple.dt.Xcode") ||
@@ -107,8 +109,8 @@ public enum AppConstants {
             value.isEmpty ||
             legacyUserAgents.contains(value) ||
             value.contains("dt.Xcode") ||
-            value.contains("Macintosh; OS X 26.6") ||
-            value.contains("CFNetwork/808.1.4")
+            value.contains("CFNetwork/808.1.4") ||
+            value.contains("CFNetwork/811.5.4 Darwin/16.7.0")
         }
 
         public enum URLs {
